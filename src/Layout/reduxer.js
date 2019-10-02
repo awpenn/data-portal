@@ -43,6 +43,7 @@ export const ReduxTopBar = (() => {
     topItems: components.topBar.items,
     activeTab: state.bar.active,
     user: state.user,
+    userAccess: state.userAccess.access,
     isFullWidth: isPageFullScreen(state.bar.active),
   });
 

@@ -23,18 +23,9 @@ class TopBar extends Component {
             {
               this.props.topItems.map(
                 item => {
-                  var text = item.name
-                  //Sadly this code is "aware of" what is in the config but there is no way to
-                  //e.g. just configure two different buttons "Browse" and "Submit/Browse";
-                  //you would either need to toggle both in different directions (=>same problem)
-                  //or "negate" the required permissions for "Browse" in configToResourceMapping
-                  //(currently not possible).
-                  if (item.name == "Submit Data") {
-                    if (this.canUserSeeComponent(item.name)) {
-                      text = "Submit/Browse Data"
-                    } else {
-                      text = "Browse Data"
-                    }
+                  var buttonText = item.name
+                  if (item.nameIfNoAccess && !this.canUserSeeComponent(item.name)) {
+                    buttonText = item.nameIfNoAccess
                   }
                   const topIconButton = (
                     (item.link.startsWith('http')) ?
@@ -46,7 +37,7 @@ class TopBar extends Component {
                         rel='noopener noreferrer'
                       >
                         <TopIconButton
-                          name={text}//{item.name}
+                          name={buttonText}
                           icon={item.icon}
                           isActive={this.isActive(item.link)}
                           onActiveTab={() => this.props.onActiveTab(item.link)}
@@ -58,7 +49,7 @@ class TopBar extends Component {
                         to={item.link}
                       >
                         <TopIconButton
-                          name={text}//{item.name}
+                          name={buttonText}
                           icon={item.icon}
                           isActive={this.isActive(item.link)}
                           onActiveTab={() => this.props.onActiveTab(item.link)}

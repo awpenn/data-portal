@@ -106,9 +106,10 @@ class ExplorerButtonGroup extends React.Component {
     const resourceType = this.props.guppyConfig.manifestMapping.resourceIndexType;
     const refIDList = await this.props.downloadRawDataByFields({ fields: [refField] })
       .then(res => res.map(i => i[refField]));
-    if (indexType === 'file') {
-      return refIDList.map(id => ({ [refField]: id }));
-    }
+      if (indexType === 'file') {
+        const fileManifestIDList = await this.props.downloadRawDataByFields({fields: ["file_path", "file_name", "submitter_id"] })
+        return fileManifestIDList.map(data => ({ file_path:data.file_path, file_name:data.file_name, subject: data.submitter_id}));
+      }
     const filter = {
       [refFieldInResourceIndex]: {
         selectedValues: refIDList,

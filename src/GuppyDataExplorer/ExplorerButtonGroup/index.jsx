@@ -119,7 +119,7 @@ class ExplorerButtonGroup extends React.Component {
       filter.data_format = this.props.filter.data_format;
     }
     let resultManifest = await this.props.downloadRawDataByTypeAndFilter(
-      resourceType, filter, [refFieldInResourceIndex, resourceFieldInResourceIndex],
+      resourceType, filter, [refFieldInResourceIndex, resourceFieldInResourceIndex, "file_name", "file_path", "submitter_id"],
     );
     resultManifest = resultManifest.filter(
       x => !!x[resourceFieldInResourceIndex],

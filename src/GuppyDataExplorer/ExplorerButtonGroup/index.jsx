@@ -81,7 +81,7 @@ class ExplorerButtonGroup extends React.Component {
       clickFunc = this.downloadManifest(buttonConfig.fileName, null);
     }
     if (buttonConfig.type === 'file-manifest') {
-      clickFunc = this.downloadManifest(buttonConfig.fileName, 'file');
+      clickFunc = this.downloadData(buttonConfig.fileName);
     }
     if (buttonConfig.type === 'export') {
       clickFunc = this.exportToCloud;

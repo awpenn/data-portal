@@ -110,11 +110,8 @@ class ExplorerButtonGroup extends React.Component {
     const refIDList = await this.props.downloadRawDataByFields({ fields: [refField] })
       .then(res => res.map(i => i[refField]));
       if (indexType === 'file') {
-        // AW -- this was original solution, when 'file-manifest' requested from the files tab, this function called with hard-coded 
-        // arguments that tell Guppy what fields to return, then they're mapped into an object. with awpenn.data-portal 1.0.6 this
-        // function is no longer  called, rather just the function that gets data based on the table columns
         const fileManifestIDList = await this.props.downloadRawDataByFields({fields: fieldsToGet })
-        return fileManifestIDList.map(data => ({ [refField]: data}));
+        return fileManifestIDList.map(data => ({ [refField]: data }));
       }
     const filter = {
       [refFieldInResourceIndex]: {

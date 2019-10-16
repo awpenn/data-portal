@@ -83,7 +83,7 @@ class ExplorerButtonGroup extends React.Component {
     // AW -- below if statement changed to call downloadData instead of downloadManifest(buttonConfig.fileName, 'file')
     // so that the function pulling data takes all fields based on the file tab table rather than hard coded arguments
     if (buttonConfig.type === 'file-manifest') {
-      clickFunc = this.downloadData(buttonConfig.fileName);
+      clickFunc = this.downloadManifest(buttonConfig.fileName, 'file');
     }
     if (buttonConfig.type === 'export') {
       clickFunc = this.exportToCloud;
@@ -106,14 +106,15 @@ class ExplorerButtonGroup extends React.Component {
       this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex;
     const resourceFieldInResourceIndex = this.props.guppyConfig.manifestMapping.resourceIdField;
     const resourceType = this.props.guppyConfig.manifestMapping.resourceIndexType;
+    const fieldsToGet = this.props.guppyConfig.manifestMapping.fieldsToGet;
     const refIDList = await this.props.downloadRawDataByFields({ fields: [refField] })
       .then(res => res.map(i => i[refField]));
       if (indexType === 'file') {
         // AW -- this was original solution, when 'file-manifest' requested from the files tab, this function called with hard-coded 
         // arguments that tell Guppy what fields to return, then they're mapped into an object. with awpenn.data-portal 1.0.6 this
         // function is no longer  called, rather just the function that gets data based on the table columns
-        const fileManifestIDList = await this.props.downloadRawDataByFields({fields: ["file_path", "file_name", "submitter_id"] })
-        return fileManifestIDList.map(data => ({ file_path:data.file_path, file_name:data.file_name, subject: data.submitter_id}));
+        const fileManifestIDList = await this.props.downloadRawDataByFields({fields: fieldsToGet })
+        return fileManifestIDList.map(data => ({ [refField]: data}));
       }
     const filter = {
       [refFieldInResourceIndex]: {

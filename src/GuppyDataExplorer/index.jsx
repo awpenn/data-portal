@@ -21,6 +21,7 @@ const defaultConfig = {
       resourceIdField: 'file_id', // TODO: change to object_id
       referenceIdFieldInResourceIndex: 'subject_id',
       referenceIdFieldInDataIndex: 'subject_id', // TODO: change to node_id
+      fieldsToGet: ["submitter_id", "file_name", "file_path", "data_format"]
     },
   },
   buttons: [],
@@ -118,7 +119,7 @@ class Explorer extends React.Component {
 
 Explorer.propTypes = {
   history: PropTypes.object.isRequired, // inherited from ProtectedContent
-  location: PropTypes.object.isRequired,
+  location: PropTypes.object.isRequired
 };
 
 export default Explorer;

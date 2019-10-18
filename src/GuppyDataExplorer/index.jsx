@@ -20,8 +20,9 @@ const defaultConfig = {
       resourceIndexType: 'file',
       resourceIdField: 'file_id', // TODO: change to object_id
       referenceIdFieldInResourceIndex: 'subject_id',
-      referenceIdFieldInDataIndex: 'subject_id', // TODO: change to node_id
-      fieldsToGet: ["submitter_id", "file_name", "file_path", "data_format"]
+      referenceIdFieldInDataIndex: 'subject_id' // TODO: change to node_id
+      //added to make fTG work on data tab, c-ed out because added to dataExplorer manifestMapping in gitops
+      // fieldsToGet: ["submitter_id", "file_name", "file_path", "data_format"]
     },
   },
   buttons: [],

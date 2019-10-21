@@ -106,17 +106,15 @@ class ExplorerButtonGroup extends React.Component {
       this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex;
     const resourceFieldInResourceIndex = this.props.guppyConfig.manifestMapping.resourceIdField;
     const resourceType = this.props.guppyConfig.manifestMapping.resourceIndexType;
-    const fieldsToGet = this.props.guppyConfig.manifestMapping.fieldsToGet;
-    console.log(`ftg just below the dec: ${fieldsToGet}`)
-    console.log(`resourceType just below the dec: ${resourceType}`)
+    const manifestFieldsToRetrieve = this.props.guppyConfig.manifestMapping.manifestFieldsToRetrieve;
     const refIDList = await this.props.downloadRawDataByFields({ fields: [refField] })
       .then(res => res.map(i => i[refField]));
+
       if (indexType === 'file') {
-        console.log(`fieldsToGet in file-manifest ifstat: ${fieldsToGet}`)
-        const fileManifestIDList = await this.props.downloadRawDataByFields({fields: fieldsToGet })
+        const fileManifestIDList = await this.props.downloadRawDataByFields({fields: manifestFieldsToRetrieve })
         return fileManifestIDList.map(data => ({ [refField]: data }));
       }
-    console.log(`fieldstoget below the "file" ifstat: ${fieldsToGet}`)
+
     const filter = {
       [refFieldInResourceIndex]: {
         selectedValues: refIDList,
@@ -125,15 +123,10 @@ class ExplorerButtonGroup extends React.Component {
     if (this.props.filter.data_format) {
       filter.data_format = this.props.filter.data_format;
     }
-    console.log(`this is the fieldsToGet: ${fieldsToGet}`)
-    console.log(`this is the this.props.....fieldsToGet: ${this.props.guppyConfig.manifestMapping.fieldsToGet}`)
-    console.log(`this is the reffieldinresourceindex: ${refFieldInResourceIndex}`)
-    console.log(`this is the fieldsToGet type: ${typeof(fieldsToGet)}`)
 
     let resultManifest = await this.props.downloadRawDataByTypeAndFilter(
-      // currently 'fieldsToGet' in this call are hard-coded at src/GuppyDataExplorer in defaultconfig.guppyconfig
-      // need to figure out how to import the same admin-defined variables as works with fileExplorer
-      resourceType, filter, [refFieldInResourceIndex, resourceFieldInResourceIndex, ...fieldsToGet]
+
+      resourceType, filter, [refFieldInResourceIndex, resourceFieldInResourceIndex, ...manifestFieldsToRetrieve]
     );
     resultManifest = resultManifest.filter(
       x => !!x[resourceFieldInResourceIndex],

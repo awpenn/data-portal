@@ -210,11 +210,70 @@ class ExplorerButtonGroup extends React.Component {
     });
   };
 
-  downloadManifest = (filename, indexType) => async () => {
+  /// switcher to create JSON or CSV manifest based on filename
+  downloadManifest = (filename, indexType) => {
+
+    if( filename.includes('.json') ){
+      console.log('dManifest .json if statement reached')
+      this.downloadJSONManifest(filename, indexType) 
+    }
+
+    if( filename.includes('.csv') ){
+      console.log('dManifest .csv if statement reached')
+      this.downloadCSVManifest(filename, indexType)
+    }
+
+  }
+
+  /// this is the original function that creates json files
+  downloadJSONManifest = (filename, indexType) => async () => {
+    console.log('downloadJSON func reached')
     const resultManifest = await this.getManifest(indexType);
     if (resultManifest) {
+      // just to take a gander here
+
       const blob = new Blob([JSON.stringify(resultManifest, null, 2)], { type: 'text/json' });
       FileSaver.saveAs(blob, filename);
+    } else {
+      throw Error('Error when downloading manifest');
+    }
+  };
+
+  downloadCSVManifest = (filename, indexType) => async () => {
+    console.log('downloadCSV func reached')
+    const resultManifest = await this.getManifest(indexType);
+    if (resultManifest) {
+
+      function ConvertToCSV(objArray) {
+        var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+        var str = '';
+        var headers = Object.keys(array[0])
+        var header_line = '';
+    
+        for (var i = 0; i< headers.length; i++){
+            if(header_line != '') header_line += ","
+            header_line += headers[i]
+        }
+        str += header_line + '\r\n';
+
+        for (var i = 0; i < array.length; i++) {
+            var line = '';
+            for (var index in array[i]) {
+                if (line != '') line += ','
+    
+                line += array[i][index];
+            }
+            str += line + '\r\n';
+        }
+        return str;
+      };
+
+      const csv = ConvertToCSV(resultManifest)
+
+      console.log(csv)
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      FileSaver.saveAs(blob, filename);
+      
     } else {
       throw Error('Error when downloading manifest');
     }

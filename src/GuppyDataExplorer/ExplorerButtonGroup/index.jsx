@@ -101,6 +101,7 @@ class ExplorerButtonGroup extends React.Component {
   };
 
   getManifest = async (indexType) => {
+
     const refField = this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex;
     const refFieldInResourceIndex =
       this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex;
@@ -111,8 +112,9 @@ class ExplorerButtonGroup extends React.Component {
       .then(res => res.map(i => i[refField]));
 
       if (indexType === 'file') {
-        const fileManifestIDList = await this.props.downloadRawDataByFields({fields: manifestFieldsToRetrieve })
-        return fileManifestIDList.map(data => ({ [refField]: data }));
+        const fileManifestData = await this.props.downloadRawDataByFields({fields: manifestFieldsToRetrieve })
+        //return fileManifestData.map(data => ({ data }));
+        return fileManifestData
       }
 
     const filter = {
@@ -202,27 +204,61 @@ class ExplorerButtonGroup extends React.Component {
   downloadData = filename => () => {
     this.props.downloadRawData().then((res) => {
       if (res) {
-        const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'text/json' });
-        FileSaver.saveAs(blob, filename);
+
+        if ( filename.includes('.csv') ){
+
+          function ConvertToCSV(objArray) {
+            var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+            var str = '';
+            var headers = Object.keys(array[0])
+            var header_line = '';
+        
+            for (var i = 0; i< headers.length; i++){
+                if(header_line != '') header_line += ","
+                header_line += headers[i]
+            }
+            str += header_line + '\r\n';
+    
+            for (var i = 0; i < array.length; i++) {
+                var line = '';
+                for (var index in array[i]) {
+                    if (line != '') line += ','
+        
+                    line += array[i][index];
+                }
+                str += line + '\r\n';
+            }
+            return str;
+          };
+    
+          const csv = ConvertToCSV(res)
+          var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+          FileSaver.saveAs(blob, filename);
+        }
+
+        if ( filename.includes('.json') ){
+          const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'text/json' });
+          FileSaver.saveAs(blob, filename);
+        }
+
       } else {
         throw Error('Error when downloading data');
       }
     });
   };
 
-  /// this is the original function that creates json filesg
   downloadManifest = (filename, indexType) => async () => {
-    console.log('downloadJSON func reached')
     const resultManifest = await this.getManifest(indexType);
 
     if (resultManifest) {
-      // just to take a gander here
-      if (filename.includes('.json') ){
+
+      if ( filename.includes('.json') ){
         const blob = new Blob([JSON.stringify(resultManifest, null, 2)], { type: 'text/json' });
         FileSaver.saveAs(blob, filename);
       }
 
-      if (filename.includes('.csv') ){
+      if ( filename.includes('.csv') ){
+
         function ConvertToCSV(objArray) {
           var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
           var str = '';
@@ -248,6 +284,7 @@ class ExplorerButtonGroup extends React.Component {
         };
   
         const csv = ConvertToCSV(resultManifest)
+
         var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
         FileSaver.saveAs(blob, filename);
       }
@@ -256,46 +293,6 @@ class ExplorerButtonGroup extends React.Component {
       throw Error('Error when downloading manifest');
     }
   };
-  // saved first version of downloadCSVManifest
-  // downloadCSVManifest = (filename, indexType) => async () => {
-  //   console.log('downloadCSV func reached')
-  //   const resultManifest = await this.getManifest(indexType);
-  //   if (resultManifest) {
-
-  //     function ConvertToCSV(objArray) {
-  //       var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
-  //       var str = '';
-  //       var headers = Object.keys(array[0])
-  //       var header_line = '';
-    
-  //       for (var i = 0; i< headers.length; i++){
-  //           if(header_line != '') header_line += ","
-  //           header_line += headers[i]
-  //       }
-  //       str += header_line + '\r\n';
-
-  //       for (var i = 0; i < array.length; i++) {
-  //           var line = '';
-  //           for (var index in array[i]) {
-  //               if (line != '') line += ','
-    
-  //               line += array[i][index];
-  //           }
-  //           str += line + '\r\n';
-  //       }
-  //       return str;
-  //     };
-
-  //     const csv = ConvertToCSV(resultManifest)
-
-  //     console.log(csv)
-  //     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  //     FileSaver.saveAs(blob, filename);
-      
-  //   } else {
-  //     throw Error('Error when downloading manifest');
-  //   }
-  // };
 
   exportToCloud = () => {
     this.setState({ exportingToCloud: true }, () => {

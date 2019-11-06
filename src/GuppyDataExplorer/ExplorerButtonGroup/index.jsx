@@ -226,7 +226,7 @@ class ExplorerButtonGroup extends React.Component {
   }
 
   /// this is the original function that creates json files
-  downloadJSONManifest = (filename, indexType) => async () => {
+  downloadManifest = (filename, indexType) => async () => {
     console.log('downloadJSON func reached')
     const resultManifest = await this.getManifest(indexType);
     if (resultManifest) {

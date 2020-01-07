@@ -220,15 +220,18 @@ class ExplorerButtonGroup extends React.Component {
             str += header_line + '\r\n';
     
             for (var i = 0; i < array.length; i++) {
-                var line = '';
-                for (var index in array[i]) {
-                    if (line != '') line += ','
-        
-                    line += array[i][index];
-                }
-                str += line + '\r\n';
-            }
-            return str;
+              var line = '';
+              for (var index in array[i]) {
+                  if (array[i][index] == '' && Object.keys(array[i]).indexOf(index) == 0) line += ','
+                  if (line != '' && line != ',') line += ','
+      
+                  line += array[i][index];
+              }
+      
+              str += line + '\r\n';
+          }
+      
+          return str;
           };
     
           const csv = ConvertToCSV(res)

@@ -128,9 +128,7 @@ class ExplorerButtonGroup extends React.Component {
 
     let resultManifest = await this.props.downloadRawDataByTypeAndFilter(
 
-      resourceType, filter, [...manifestFieldsToRetrieve]
-
-      // resourceType, filter, [...manifestFieldsToRetrieve, refFieldInResourceIndex, resourceFieldInResourceIndex]
+      resourceType, filter, [...manifestFieldsToRetrieve, refFieldInResourceIndex, resourceFieldInResourceIndex]
     );
     resultManifest = resultManifest.filter(
       x => !!x[resourceFieldInResourceIndex],

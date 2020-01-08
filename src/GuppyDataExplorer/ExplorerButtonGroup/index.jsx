@@ -251,11 +251,12 @@ class ExplorerButtonGroup extends React.Component {
       }
     });
   };
-
+  
+  //download manifest is files, not subject data
   downloadManifest = (filename, indexType) => async () => {
     const resultManifest = await this.getManifest(indexType);
-
     if (resultManifest) {
+      //stub: if indexType = null need to pop off the last two items in array[i] below (ie. internal ids)
 
       if ( filename.includes('.json') ){
         const blob = new Blob([JSON.stringify(resultManifest, null, 2)], { type: 'text/json' });
@@ -263,10 +264,9 @@ class ExplorerButtonGroup extends React.Component {
       }
 
       if ( filename.includes('.csv') ){
-
+        
         function ConvertToCSV(objArray) {
-          console.log('this is the result of the call to download data pre-csv conversion')
-          console.log(objArray)
+
           var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
           var str = '';
           var headers = Object.keys(array[0])
@@ -279,10 +279,16 @@ class ExplorerButtonGroup extends React.Component {
           str += header_line + '\r\n';
   
           for (var i = 0; i < array.length; i++) {
+              if (indexType == 'file'){
+                array[i].pop()
+                array[i].pop()
+              }
               var line = '';
               for (var index in array[i]) {
-                  if (line != '') line += ','
-      
+
+                  if (array[i][index] == '' && Object.keys(array[i]).indexOf(index) == 0) line += ','
+                  if (line != '' && line != ',') line += ','
+
                   line += array[i][index];
               }
               str += line + '\r\n';
@@ -294,8 +300,10 @@ class ExplorerButtonGroup extends React.Component {
 
         var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
         FileSaver.saveAs(blob, filename);
+        
       }
 
+    ////dandaabove
     } else {
       throw Error('Error when downloading manifest');
     }

@@ -287,7 +287,8 @@ class ExplorerButtonGroup extends React.Component {
           }
           return str;
         };
-  
+        console.log('this is the result of the call to download data pre-csv conversion')
+        console.log(resultManifest)
         const csv = ConvertToCSV(resultManifest)
 
         var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });

@@ -128,7 +128,7 @@ class ExplorerButtonGroup extends React.Component {
 
     let resultManifest = await this.props.downloadRawDataByTypeAndFilter(
 
-      resourceType, filter, [...manifestFieldsToRetrieve]
+      resourceType, filter, [refFieldInResourceIndex, resourceFieldInResourceIndex,...manifestFieldsToRetrieve]
     );
     resultManifest = resultManifest.filter(
       x => !!x[resourceFieldInResourceIndex],
@@ -233,7 +233,9 @@ class ExplorerButtonGroup extends React.Component {
       
           return str;
           };
-    
+          
+          console.log('this is the result of the call to download data pre-csv conversion')
+          console.log(res)
           const csv = ConvertToCSV(res)
           var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
           FileSaver.saveAs(blob, filename);

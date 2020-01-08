@@ -208,6 +208,8 @@ class ExplorerButtonGroup extends React.Component {
         if ( filename.includes('.csv') ){
 
           function ConvertToCSV(objArray) {
+            console.log('this is the result of the call to download data pre-csv conversion')
+            console.log(objArray)
             var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
             var str = '';
             var headers = Object.keys(array[0])
@@ -234,8 +236,6 @@ class ExplorerButtonGroup extends React.Component {
           return str;
           };
           
-          console.log('this is the result of the call to download data pre-csv conversion')
-          console.log(res)
           const csv = ConvertToCSV(res)
           var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
           FileSaver.saveAs(blob, filename);
@@ -265,6 +265,8 @@ class ExplorerButtonGroup extends React.Component {
       if ( filename.includes('.csv') ){
 
         function ConvertToCSV(objArray) {
+          console.log('this is the result of the call to download data pre-csv conversion')
+          console.log(objArray)
           var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
           var str = '';
           var headers = Object.keys(array[0])
@@ -287,8 +289,7 @@ class ExplorerButtonGroup extends React.Component {
           }
           return str;
         };
-        console.log('this is the result of the call to download data pre-csv conversion')
-        console.log(resultManifest)
+
         const csv = ConvertToCSV(resultManifest)
 
         var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });

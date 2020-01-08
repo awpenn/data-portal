@@ -277,8 +277,7 @@ class ExplorerButtonGroup extends React.Component {
           for (var i = 0; i < array.length; i++) {
               var line = '';
               for (var index in array[i]) {
-                if (array[i][index] == '' && Object.keys(array[i]).indexOf(index) == 0) line += ','
-                if (line != '' && line != ',') line += ','
+                  if (line != '') line += ','
       
                   line += array[i][index];
               }

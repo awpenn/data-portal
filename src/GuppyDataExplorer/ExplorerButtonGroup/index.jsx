@@ -208,14 +208,15 @@ class ExplorerButtonGroup extends React.Component {
         if ( filename.includes('.csv') ){
 
           function ConvertToCSV(objArray) {
-            console.log('this is the result of the call to download data pre-csv conversion')
-            console.log(objArray)
             var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
             var str = '';
             var headers = Object.keys(array[0])
             var header_line = '';
         
             for (var i = 0; i< headers.length; i++){
+                if (headers[i] == 'object_id' | headers[i] == 'subject_id'){
+                  continue
+                }
                 if(header_line != '') header_line += ","
                 header_line += headers[i]
             }
@@ -224,6 +225,9 @@ class ExplorerButtonGroup extends React.Component {
             for (var i = 0; i < array.length; i++) {
               var line = '';
               for (var index in array[i]) {
+                  if(index == 'object_id' | index == 'subject_id'){
+                    continue
+                  }
                   if (array[i][index] == '' && Object.keys(array[i]).indexOf(index) == 0) line += ','
                   if (line != '' && line != ',') line += ','
       
@@ -256,7 +260,6 @@ class ExplorerButtonGroup extends React.Component {
   downloadManifest = (filename, indexType) => async () => {
     const resultManifest = await this.getManifest(indexType);
     if (resultManifest) {
-      //stub: if indexType = null need to pop off the last two items in array[i] below (ie. internal ids)
 
       if ( filename.includes('.json') ){
         const blob = new Blob([JSON.stringify(resultManifest, null, 2)], { type: 'text/json' });
@@ -273,19 +276,20 @@ class ExplorerButtonGroup extends React.Component {
           var header_line = '';
       
           for (var i = 0; i< headers.length; i++){
+              if (headers[i] == 'object_id' | headers[i] == 'subject_id'){
+                continue
+              }
               if(header_line != '') header_line += ","
               header_line += headers[i]
           }
           str += header_line + '\r\n';
   
           for (var i = 0; i < array.length; i++) {
-              if (indexType == 'file'){
-                array[i].pop()
-                array[i].pop()
-              }
               var line = '';
               for (var index in array[i]) {
-
+                  if(index == 'object_id' | index == 'subject_id'){
+                    continue
+                  }
                   if (array[i][index] == '' && Object.keys(array[i]).indexOf(index) == 0) line += ','
                   if (line != '' && line != ',') line += ','
 

@@ -12,6 +12,7 @@ import Spinner from '../components/Spinner';
 import jupyterIcon from '../img/icons/jupyter.svg';
 import rStudioIcon from '../img/icons/rstudio.svg';
 import galaxyIcon from '../img/icons/galaxy.svg';
+import ohifIcon from '../img/icons/ohif-viewer.svg';
 import WorkspaceOption from './WorkspaceOption';
 
 class Workspace extends React.Component {
@@ -80,19 +81,19 @@ class Workspace extends React.Component {
   ).catch(() => 'Error');
 
   getIcon = (notebook) => {
-    switch (notebook) {
-    case 'R Studio':
+    if (this.regIcon(notebook, 'R Studio')) {
       return rStudioIcon;
-    case 'Jupyter Notebook Bio Python':
+    } else if (this.regIcon(notebook, 'Jupyter')) {
       return jupyterIcon;
-    case 'Jupyter Notebook Bio R':
-      return jupyterIcon;
-    case 'Galaxy':
+    } else if (this.regIcon(notebook, 'Galaxy')) {
       return galaxyIcon;
-    default:
-      return jupyterIcon;
+    } else if (this.regIcon(notebook, 'DICOM')) {
+      return ohifIcon;
     }
+    return jupyterIcon;
   }
+
+  regIcon = (str, pattn) => new RegExp(pattn).test(str)
 
   launchWorkspace = (notebook) => {
     this.setState({ notebookType: notebook.name }, () => {
@@ -197,20 +198,25 @@ class Workspace extends React.Component {
     );
 
     if (this.state.connectedStatus && this.state.notebookStatus && !this.state.defaultNotebook) {
+      // NOTE both the containing element and the iframe have class '.workspace',
+      // although no styles should be shared between them. The reason for this
+      // is for backwards compatibility with Jenkins integration tests that select by classname.
       return (
         <div
-          className={`workspace__container ${this.state.notebookIsfullpage ? 'workspace__container--fullpage' : ''}`}
+          className={`workspace ${this.state.notebookIsfullpage ? 'workspace--fullpage' : ''}`}
         >
           {
             this.state.notebookStatus === 'Running' ||
               this.state.notebookStatus === 'Stopped' ?
               <React.Fragment>
-                <iframe
-                  className='workspace'
-                  title='Workspace'
-                  frameBorder='0'
-                  src={`${workspaceUrl}proxy/`}
-                />
+                <div className='workspace__iframe'>
+                  <iframe
+                    className='workspace'
+                    title='Workspace'
+                    frameBorder='0'
+                    src={`${workspaceUrl}proxy/`}
+                  />
+                </div>
                 <div className='workspace__buttongroup'>
                   { terminateButton }
                   { fullpageButton }
@@ -221,7 +227,7 @@ class Workspace extends React.Component {
           {
             this.state.notebookStatus === 'Launching' ?
               <React.Fragment>
-                <div className='workspace'>
+                <div className='workspace__spinner-container'>
                   <Spinner text='Launching workspace...' />
                 </div>
                 <div className='workspace__buttongroup'>
@@ -232,7 +238,9 @@ class Workspace extends React.Component {
           }
           {
             this.state.notebookStatus === 'Terminating' ?
-              <Spinner text='Terminating workspace...' />
+              <div className='workspace__spinner-container'>
+                <Spinner text='Terminating workspace...' />
+              </div>
               : null
           }
           {
@@ -268,13 +276,17 @@ class Workspace extends React.Component {
         </div>
       );
     } else if (this.state.defaultNotebook && this.state.connectedStatus) {
+      // If this commons does not use Hatchery to spawn workspaces, then this
+      // default workspace is shown.
       return (
-        <iframe
-          title='Workspace'
-          frameBorder='0'
-          className='workspace'
-          src={workspaceUrl}
-        />
+        <div className='workspace__default'>
+          <iframe
+            title='Workspace'
+            frameBorder='0'
+            className='workspace'
+            src={workspaceUrl}
+          />
+        </div>
       );
     }
     return <Spinner />;

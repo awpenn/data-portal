@@ -35,6 +35,11 @@ HOSTNAME=dev.planx-pla.net NODE_ENV=auto bash ./runWebpack.sh
 HOSTNAME=qa-brain.planx-pla.net NODE_ENV=auto bash ./runWebpack.sh
 ```
 
+>**NOTE:** To locally test Tiered Access features, you must include the additional environment variables `TIER_ACCESS_LEVEL` and `TIER_ACCESS_LIMIT`, with should have the same values as the server's "global.tier_access_level" and "global.tier_access_limit" properties in its [`manifest.json`](https://github.com/uc-cdis/cdis-manifest).
+>
+> **Example**:`HOSTNAME=qa-brain.planx-pla.net TIER_ACCESS_LEVEL=regular TIER_ACCESS_LIMIT=50 NODE_ENV=auto bash ./runWebpack.sh`
+
+
 * Accept the self-signed certificate at https://localhost:9443/bundle.js
 
 * Load the test environment's `/dev.html` - ex: https://qa-brian.planx-pla.net/dev.html
@@ -97,7 +102,7 @@ You will then need to visit `https://localhost` and accept the self-signed certi
 docker run -d --name=dataportal -p 80:80 quay.io/cdis/data-portal
 
 ### GraphQL configuration
-All the configurations of Homepage and Explorer page are specified data/config/<common-name>.json. For each common, we need to specify the following json entities:
+The configurations of Homepage charts are specified data/config/<common-name>.json, or gitops.json in gitops repo. For each common, we need to specify the following json entities:
 ```
 "graphql": {
   "boardCounts": [
@@ -134,10 +139,33 @@ All the configurations of Homepage and Explorer page are specified data/config/<
   "projectDetails": "boardCounts"
 }
 
+
 ```
 - `boardCounts` are the counts that you want to display in the top-left of dashboard's
 - `chartCounts` are the counts that you want to display in the bar chart of dashboard's
 - `projectDetails` are the counts that you want to display in the list of projects. It could be same as `boardCounts`, in this case, you only need to point to `boardCounts`.
+
+Except the default case/file count charts, you could add more to the homepage, and those customized charts will be added to a carousel. 
+We support categorical horizontal grouped bar charts, and the chart will be using data from Guppy, so make sure you correctly ETL them to your Elasticsearch database. The new added charts are configured in portal config's components.index.customHomepageChartConfig config, make sure configurations are correct. Example config (notice the comments won't work for JSON): 
+
+```
+"customHomepageChartConfig": [
+  {
+    "chartType": "horizontalGroupedBar", // we currently only support this type
+    "dataType": "participant", // type name in your Elasticsearch db
+    "yAxisProp": "country", // field name for y axis
+    "xAxisProp": "ibd_affection_status", // field name for x axis
+    "constrains": {
+      "project_id": "jnkns-jenkins" // only support one constrains, could used to render charts for specific project or program
+    },
+    "chartTitle": "jnkns-jenkins project", // chart title
+    "logBase": 1, // optional, log base, default is 1,
+    "initialUnselectedKeys": ["no data", "Unknown"], // optional, an array of string, means the values those will be initially unselected
+    "subTitle": "number of cases by countries", // optional, by default it will be "number of ${dataTypePlural} by ${yAxisProp}"
+    "dataTypePlural": "cases" // optional, string, by default it will be `${dataType}s`
+  }
+]
+```
 
 ### Certificates configuration
 All the configurations of necessary certificates are define in src/<common-name>.json. For each common, we need to specify the following json entities:
@@ -173,6 +201,8 @@ All the configurations of necessary certificates are define in src/<common-name>
     }
   }
 }
+
+
 
 ```
 Then, specify all the required certificates that need to be completed before using the portal in following entry:

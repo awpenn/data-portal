@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
 import { GuppyConfigType, TableConfigType } from '../configTypeDef';
-import { capitalizeFirstLetter } from '../../utils';
+import { capitalizeFirstLetter, humanFileSize } from '../../utils';
 import './ExplorerTable.css';
 import LockIcon from '../../img/icons/lock.svg';
 
@@ -71,9 +71,16 @@ class ExplorerTable extends React.Component {
         accessor: field,
         maxWidth: 400,
         width: this.getWidthForColumn(field, name),
-        Cell: row => (this.props.guppyConfig.downloadAccessor === field ?
-          <div><span title={row.value}><a href={`/files/${row.value}`}>{row.value}</a></span></div>
-          : <div><span title={row.value}>{row.value}</span></div>),
+        Cell: (row) => {
+          switch (field) {
+          case this.props.guppyConfig.downloadAccessor:
+            return (<div><span title={row.value}><a href={`/files/${row.value}`}>{row.value}</a></span></div>);
+          case 'file_size':
+            return (<div><span title={row.value}>{humanFileSize(row.value)}</span></div>);
+          default:
+            return (<div><span title={row.value}>{row.value}</span></div>);
+          }
+        },
       };
     });
     const { totalCount } = this.props;
@@ -83,10 +90,17 @@ class ExplorerTable extends React.Component {
     const visiblePages = Math.min(totalPages, Math.round((SCROLL_SIZE / pageSize) + 0.49));
     const start = (this.state.currentPage * this.state.pageSize) + 1;
     const end = (this.state.currentPage + 1) * this.state.pageSize;
+    let explorerTableCaption = `Showing ${start} - ${end} of ${totalCount} ${this.props.guppyConfig.dataType}s`;
+    if (totalCount < end && totalCount < 2) {
+      explorerTableCaption = `Showing ${totalCount} of ${totalCount} ${this.props.guppyConfig.dataType}s`;
+    } else if (totalCount < end && totalCount >= 2) {
+      explorerTableCaption = `Showing ${start} - ${totalCount} of ${totalCount} ${this.props.guppyConfig.dataType}s`;
+    }
+
     return (
       <div className={`explorer-table ${this.props.className}`}>
         {(this.props.isLocked) ? <React.Fragment />
-          : <p className='explorer-table__description'>{`Showing ${start} - ${end} of ${totalCount} ${this.props.guppyConfig.dataType}s`}</p> }
+          : <p className='explorer-table__description'>{explorerTableCaption}</p> }
         <ReactTable
           columns={columnsConfig}
           manual

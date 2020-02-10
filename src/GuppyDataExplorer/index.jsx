@@ -20,7 +20,7 @@ const defaultConfig = {
       resourceIndexType: 'file',
       resourceIdField: 'file_id', // TODO: change to object_id
       referenceIdFieldInResourceIndex: 'subject_id',
-      referenceIdFieldInDataIndex: 'subject_id' // TODO: change to node_id
+      referenceIdFieldInDataIndex: 'subject_id', // TODO: change to node_id
     },
   },
   buttons: [],
@@ -104,11 +104,13 @@ class Explorer extends React.Component {
               buttons: guppyExplorerConfig[this.state.tab].buttons,
               dropdowns: guppyExplorerConfig[this.state.tab].dropdowns,
               terraExportURL: config.dataExplorerConfig.terraExportURL,
+              terraTemplate: config.dataExplorerConfig.terraTemplate,
             }}
             history={this.props.history}
             tierAccessLevel={tierAccessLevel}
             tierAccessLimit={tierAccessLimit}
             getAccessButtonLink={config.dataExplorerConfig.getAccessButtonLink}
+            hideGetAccessButton={config.dataExplorerConfig.hideGetAccessButton}
           />
         </div>
       </div>
@@ -118,7 +120,7 @@ class Explorer extends React.Component {
 
 Explorer.propTypes = {
   history: PropTypes.object.isRequired, // inherited from ProtectedContent
-  location: PropTypes.object.isRequired
+  location: PropTypes.object.isRequired,
 };
 
 export default Explorer;

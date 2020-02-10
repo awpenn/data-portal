@@ -5,17 +5,18 @@ import { setActive } from '../Layout/reduxer';
 import IndexBarChart from '../components/charts/IndexBarChart/.';
 import IndexCounts from '../components/cards/IndexCounts/.';
 import IndexButtonBar from '../components/IndexButtonBar';
+import Introduction from '../components/Introduction';
 import { components } from '../params';
 
 export const ReduxIndexBarChart = (() => {
   const mapStateToProps = (state) => {
-    if (state.homepage && state.homepage.projectsByName) {
+    if (state.index && state.index.projectsByName) {
       const projectList = Object.values(
-        state.homepage.projectsByName,
+        state.index.projectsByName,
       ).sort(sortCompare);
       return {
         projectList,
-        countNames: state.homepage.countNames,
+        countNames: state.index.countNames,
       };
     }
     return {};
@@ -29,13 +30,13 @@ export const ReduxIndexBarChart = (() => {
 
 export const ReduxIndexCounts = (() => {
   const mapStateToProps = (state) => {
-    if (state.homepage && state.homepage.projectsByName) {
+    if (state.index && state.index.projectsByName) {
       const projectList = Object.values(
-        state.homepage.projectsByName,
+        state.index.projectsByName,
       ).sort(sortCompare);
       return {
         projectList,
-        countNames: state.homepage.countNames,
+        countNames: state.index.countNames,
       };
     }
     return {};
@@ -60,4 +61,12 @@ export const ReduxIndexButtonBar = (() => {
   });
 
   return connect(mapStateToProps, mapDispatchToProps)(IndexButtonBar);
+})();
+
+export const ReduxIntroduction = (() => {
+  const mapStateToProps = state => ({
+    userAuthMapping: state.userAuthMapping,
+  });
+
+  return connect(mapStateToProps)(Introduction);
 })();

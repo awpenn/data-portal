@@ -8,9 +8,8 @@ import PropTypes from 'prop-types';
 import { calculateDropdownButtonConfigs, humanizeNumber } from '../../DataExplorer/utils';
 import { ButtonConfigType, GuppyConfigType } from '../configTypeDef';
 import { fetchWithCreds } from '../../actions';
-import { manifestServiceApiPath, guppyGraphQLUrl, terraExportWarning } from '../../localconf';
+import { manifestServiceApiPath } from '../../localconf';
 import './ExplorerButtonGroup.css';
-import Popup from '../../components/Popup';
 
 class ExplorerButtonGroup extends React.Component {
   constructor(props) {
@@ -36,6 +35,9 @@ class ExplorerButtonGroup extends React.Component {
       exportWorkspaceFileName: null,
       exportWorkspaceStatus: null,
       workspaceSuccessText: 'Your cohort has been saved! In order to view and run analysis on this cohort, please go to the workspace.',
+
+      // a semaphore that could hold pending state by multiple queries
+      pendingManifestEntryCountRequestNumber: 0,
     };
   }
 
@@ -78,18 +80,13 @@ class ExplorerButtonGroup extends React.Component {
     if (buttonConfig.type === 'manifest') {
       clickFunc = this.downloadManifest(buttonConfig.fileName, null);
     }
+    // AW -- below if statement changed to call downloadData instead of downloadManifest(buttonConfig.fileName, 'file')
+    // so that the function pulling data takes all fields based on the file tab table rather than hard coded arguments
     if (buttonConfig.type === 'file-manifest') {
       clickFunc = this.downloadManifest(buttonConfig.fileName, 'file');
     }
     if (buttonConfig.type === 'export') {
-      // REMOVE THIS CODE WHEN TERRA EXPORT WORKS
-      // =======================================
-      if (terraExportWarning) {
-        clickFunc = this.exportToCloudWithTerraWarning;
-      } else {
-      // =======================================
-        clickFunc = this.exportToCloud;
-      }
+      clickFunc = this.exportToCloud;
     }
     if (buttonConfig.type === 'export-to-pfb') {
       clickFunc = this.exportToPFB;
@@ -104,38 +101,22 @@ class ExplorerButtonGroup extends React.Component {
   };
 
   getManifest = async (indexType) => {
+
     const refField = this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex;
-    const md5Field = 'md5sum';
-    const fileNameField = 'file_name';
-    const fileSizeField = 'file_size';
-    const additionalFields = [md5Field, fileNameField, fileSizeField];
-    if (indexType === 'file') {
-      let rawData;
-      try {
-        // the additionalFields are hardcoded, so it's possible they may
-        // not be available in Guppy's index. Try to download the additional fields
-        // first, and if the download fails, download only the referenceIDField.
-        rawData = await this.props.downloadRawDataByFields({
-          fields: [
-            refField,
-            ...additionalFields,
-          ],
-        });
-      } catch (err) {
-        rawData = await this.props.downloadRawDataByFields({
-          fields: [
-            refField,
-          ],
-        });
-      }
-      return rawData;
-    }
-    const refIDList = await this.props.downloadRawDataByFields({ fields: [refField] })
-      .then(res => res.map(i => i[refField]));
     const refFieldInResourceIndex =
       this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex;
     const resourceFieldInResourceIndex = this.props.guppyConfig.manifestMapping.resourceIdField;
     const resourceType = this.props.guppyConfig.manifestMapping.resourceIndexType;
+    const manifestFieldsToRetrieve = this.props.guppyConfig.manifestMapping.manifestFieldsToRetrieve;
+    const refIDList = await this.props.downloadRawDataByFields({ fields: [refField] })
+      .then(res => res.map(i => i[refField]));
+
+      if (indexType === 'file') {
+        const fileManifestData = await this.props.downloadRawDataByFields({fields: manifestFieldsToRetrieve })
+        //return fileManifestData.map(data => ({ data }));
+        return fileManifestData
+      }
+
     const filter = {
       [refFieldInResourceIndex]: {
         selectedValues: refIDList,
@@ -144,27 +125,11 @@ class ExplorerButtonGroup extends React.Component {
     if (this.props.filter.data_format) {
       filter.data_format = this.props.filter.data_format;
     }
-    let resultManifest;
-    try {
-      resultManifest = await this.props.downloadRawDataByTypeAndFilter(
-        resourceType,
-        filter,
-        [
-          refFieldInResourceIndex,
-          resourceFieldInResourceIndex,
-          ...additionalFields,
-        ],
-      );
-    } catch (err) {
-      resultManifest = await this.props.downloadRawDataByTypeAndFilter(
-        resourceType,
-        filter,
-        [
-          refFieldInResourceIndex,
-          resourceFieldInResourceIndex,
-        ],
-      );
-    }
+
+    let resultManifest = await this.props.downloadRawDataByTypeAndFilter(
+
+      resourceType, filter, [...manifestFieldsToRetrieve, refFieldInResourceIndex, resourceFieldInResourceIndex]
+    );
     resultManifest = resultManifest.filter(
       x => !!x[resourceFieldInResourceIndex],
     );
@@ -220,35 +185,6 @@ class ExplorerButtonGroup extends React.Component {
     </Toaster>
   ));
 
-  getFileCountSum = async () => {
-    try {
-      const dataType = this.props.guppyConfig.dataType;
-      const fileCountField = this.props.guppyConfig.fileCountField;
-      const query = `query ($filter: JSON) {
-        _aggregation {
-          ${dataType} (filter: $filter) {
-            ${fileCountField} {
-              histogram {
-                sum
-              }
-            }
-          }
-        }
-      }`;
-      const body = { query, variables: { filter: getGQLFilter(this.props.filter) } };
-      const res = await fetchWithCreds({
-        path: guppyGraphQLUrl,
-        method: 'POST',
-        body: JSON.stringify(body),
-      });
-      // eslint-disable-next-line no-underscore-dangle
-      const totalFileCount = res.data.data._aggregation[dataType][fileCountField].histogram[0].sum;
-      return totalFileCount;
-    } catch (err) {
-      throw Error('Error when getting total file count');
-    }
-  };
-
   fetchJobResult = async () => this.props.fetchJobResult(this.props.job.uid);
 
   isPFBRunning = () => this.props.job && this.props.job.status === 'Running';
@@ -268,41 +204,114 @@ class ExplorerButtonGroup extends React.Component {
   downloadData = filename => () => {
     this.props.downloadRawData().then((res) => {
       if (res) {
-        const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'text/json' });
-        FileSaver.saveAs(blob, filename);
+
+        if ( filename.includes('.csv') ){
+
+          function ConvertToCSV(objArray) {
+            var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+            var str = '';
+            var headers = Object.keys(array[0])
+            var header_line = '';
+        
+            for (var i = 0; i< headers.length; i++){
+                if (headers[i] == 'object_id' | headers[i] == 'subject_id'){
+                  continue
+                }
+                if(header_line != '') header_line += ","
+                header_line += headers[i]
+            }
+            str += header_line + '\r\n';
+    
+            for (var i = 0; i < array.length; i++) {
+              var line = '';
+              for (var index in array[i]) {
+                  if(index == 'object_id' | index == 'subject_id'){
+                    continue
+                  }
+                  if (array[i][index] == '' && Object.keys(array[i]).indexOf(index) == 0) line += ','
+                  if (line != '' && line != ',') line += ','
+      
+                  line += array[i][index];
+              }
+      
+              str += line + '\r\n';
+          }
+      
+          return str;
+          };
+          
+          const csv = ConvertToCSV(res)
+          var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+          FileSaver.saveAs(blob, filename);
+        }
+
+        if ( filename.includes('.json') ){
+          const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'text/json' });
+          FileSaver.saveAs(blob, filename);
+        }
+
       } else {
         throw Error('Error when downloading data');
       }
     });
   };
-
+  
+  //download manifest is files, not subject data
   downloadManifest = (filename, indexType) => async () => {
     const resultManifest = await this.getManifest(indexType);
     if (resultManifest) {
-      const blob = new Blob([JSON.stringify(resultManifest, null, 2)], { type: 'text/json' });
-      FileSaver.saveAs(blob, filename);
+
+      if ( filename.includes('.json') ){
+        const blob = new Blob([JSON.stringify(resultManifest, null, 2)], { type: 'text/json' });
+        FileSaver.saveAs(blob, filename);
+      }
+
+      if ( filename.includes('.csv') ){
+        
+        function ConvertToCSV(objArray) {
+
+          var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+          var str = '';
+          var headers = Object.keys(array[0])
+          var header_line = '';
+      
+          for (var i = 0; i< headers.length; i++){
+              if (headers[i] == 'object_id' | headers[i] == 'subject_id'){
+                continue
+              }
+              if(header_line != '') header_line += ","
+              header_line += headers[i]
+          }
+          str += header_line + '\r\n';
+  
+          for (var i = 0; i < array.length; i++) {
+              var line = '';
+              for (var index in array[i]) {
+                  if(index == 'object_id' | index == 'subject_id'){
+                    continue
+                  }
+                  if (array[i][index] == '' && Object.keys(array[i]).indexOf(index) == 0) line += ','
+                  if (line != '' && line != ',') line += ','
+
+                  line += array[i][index];
+              }
+              str += line + '\r\n';
+          }
+          return str;
+        };
+
+        const csv = ConvertToCSV(resultManifest)
+
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        FileSaver.saveAs(blob, filename);
+        
+      }
+
+    ////dandaabove
     } else {
       throw Error('Error when downloading manifest');
     }
   };
-
-  // REMOVE THIS CODE ONCE TERRA EXPORT WORKS
-  // =========================================
-  // The below code is a temporary feature for for https://ctds-planx.atlassian.net/browse/PXP-5186
-  // (Warn user about Terra entitiy threshold). This code should be removed when
-  // Terra is no longer limited to importing <165,000 entities. (~14k subjects).
-  // This file is the only file that contains code for this feature.
-  exportToCloudWithTerraWarning = () => {
-    // If the number of subjects is over the threshold, warn the user that their
-    // export to Terra job might fail.
-    if (this.props.totalCount >= terraExportWarning.subjectThreshold) {
-      this.setState({ enableTerraWarningPopup: true });
-    } else {
-      // If the number is below the threshold, proceed as normal
-      this.exportToCloud();
-    }
-  }
-  // ==========================================
 
   exportToCloud = () => {
     this.setState({ exportingToCloud: true }, () => {
@@ -312,12 +321,7 @@ class ExplorerButtonGroup extends React.Component {
 
   sendPFBToCloud = () => {
     const url = encodeURIComponent(this.state.exportPFBURL);
-    let templateParam = '';
-    if (typeof this.props.buttonConfig.terraTemplate !== 'undefined'
-      && this.props.buttonConfig.terraTemplate != null) {
-      templateParam = `&template=${this.props.buttonConfig.terraTemplate}`;
-    }
-    window.location = `${this.props.buttonConfig.terraExportURL}?format=PFB${templateParam}&url=${url}`;
+    window.location = `${this.props.buttonConfig.terraExportURL}?format=PFB&url=${url}`;
   }
 
   exportToPFB = () => {
@@ -392,37 +396,30 @@ class ExplorerButtonGroup extends React.Component {
     const caseField = this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex;
     const caseFieldInFileIndex =
       this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex;
+    this.setState(prevState => ({
+      pendingManifestEntryCountRequestNumber: prevState.pendingManifestEntryCountRequestNumber + 1,
+      manifestEntryCount: 0,
+    }));
     if (this.props.buttonConfig
       && this.props.buttonConfig.buttons
       && this.props.buttonConfig.buttons.some(
         btnCfg => this.isFileButton(btnCfg) && btnCfg.enabled)) {
-      if (this.props.guppyConfig.fileCountField) {
-        // if "fileCountField" is set, just ask for sum of file_count field
-        const totalFileCount = await this.getFileCountSum();
-        this.setState(() => ({
-          manifestEntryCount: totalFileCount,
+      const caseIDResult = await this.props.downloadRawDataByFields({ fields: [caseField] });
+      if (caseIDResult) {
+        const caseIDList = caseIDResult.map(i => i[caseField]);
+        const fileType = this.props.guppyConfig.manifestMapping.resourceIndexType;
+        const countResult = await this.props.getTotalCountsByTypeAndFilter(fileType, {
+          [caseFieldInFileIndex]: {
+            selectedValues: caseIDList,
+          },
+        });
+        this.setState(prevState => ({
+          manifestEntryCount: countResult,
+          pendingManifestEntryCountRequestNumber:
+            prevState.pendingManifestEntryCountRequestNumber - 1,
         }));
       } else {
-        // otherwise, just query subject index for subjet_id list,
-        // and query file index for manifest info.
-        this.setState({
-          manifestEntryCount: 0,
-        });
-        const caseIDResult = await this.props.downloadRawDataByFields({ fields: [caseField] });
-        if (caseIDResult) {
-          const caseIDList = caseIDResult.map(i => i[caseField]);
-          const fileType = this.props.guppyConfig.manifestMapping.resourceIndexType;
-          const countResult = await this.props.getTotalCountsByTypeAndFilter(fileType, {
-            [caseFieldInFileIndex]: {
-              selectedValues: caseIDList,
-            },
-          });
-          this.setState({
-            manifestEntryCount: countResult,
-          });
-        } else {
-          throw Error('Error when downloading data');
-        }
+        throw Error('Error when downloading data');
       }
     }
   };
@@ -461,9 +458,6 @@ class ExplorerButtonGroup extends React.Component {
   };
 
   isButtonPending = (buttonConfig) => {
-    if (this.props.isPending) {
-      return true;
-    }
     if (buttonConfig.type === 'export-to-workspace' || buttonConfig.type === 'export-files-to-workspace') {
       return this.state.exportingToWorkspace;
     }
@@ -482,11 +476,12 @@ class ExplorerButtonGroup extends React.Component {
     }
 
     const clickFunc = this.getOnClickFunction(buttonConfig);
+    const pendingState = buttonConfig.type === 'manifest' ? (this.state.pendingManifestEntryCountRequestNumber > 0) : false;
     let buttonTitle = buttonConfig.title;
     if (buttonConfig.type === 'data') {
       const buttonCount = (this.props.totalCount >= 0) ? this.props.totalCount : 0;
       buttonTitle = `${buttonConfig.title} (${buttonCount})`;
-    } else if (buttonConfig.type === 'manifest' && this.state.manifestEntryCount > 0) {
+    } else if (buttonConfig.type === 'manifest' && !pendingState && this.state.manifestEntryCount > 0) {
       buttonTitle = `${buttonConfig.title} (${humanizeNumber(this.state.manifestEntryCount)})`;
     }
     const btnTooltipText = (this.props.isLocked) ? 'You only have access to summary data' : buttonConfig.tooltipText;
@@ -512,37 +507,6 @@ class ExplorerButtonGroup extends React.Component {
     const dropdownConfigs = calculateDropdownButtonConfigs(this.props.buttonConfig);
     return (
       <React.Fragment>
-        {
-          // REMOVE THIS CODE WHEN EXPORT TO TERRA WORKS
-          // ===========================================
-          this.state.enableTerraWarningPopup &&
-            (<Popup
-              message={terraExportWarning.message
-                ? terraExportWarning.message
-                : `Warning: You have selected more subjects than are currently supported. The import may not succeed. Terra recommends slicing your data into segments of no more than ${terraExportWarning.subjectThreshold.toLocaleString()} subjects and exporting each separately. Would you like to continue anyway?`
-              }
-              title='Warning: Export May Fail'
-              rightButtons={[
-                {
-                  caption: 'Yes, Export Anyway',
-                  fn: () => {
-                    this.setState({ enableTerraWarningPopup: false });
-                    this.exportToCloud();
-                  },
-                  icon: 'external-link',
-                },
-              ]}
-              leftButtons={[
-                {
-                  caption: 'Cancel',
-                  fn: () => this.setState({ enableTerraWarningPopup: false }),
-                  icon: 'cross',
-                },
-              ]}
-              onClose={() => this.setState({ enableTerraWarningPopup: false })}
-            />)
-          // ===========================================
-        }
         {
           /*
           * First, render dropdown buttons
@@ -615,7 +579,6 @@ ExplorerButtonGroup.propTypes = {
   downloadRawDataByTypeAndFilter: PropTypes.func.isRequired, // from GuppyWrapper
   totalCount: PropTypes.number.isRequired, // from GuppyWrapper
   filter: PropTypes.object.isRequired, // from GuppyWrapper
-  isPending: PropTypes.bool,
   buttonConfig: ButtonConfigType.isRequired,
   guppyConfig: GuppyConfigType.isRequired,
   history: PropTypes.object.isRequired,
@@ -629,7 +592,6 @@ ExplorerButtonGroup.propTypes = {
 
 ExplorerButtonGroup.defaultProps = {
   job: null,
-  isPending: false,
 };
 
 export default ExplorerButtonGroup;

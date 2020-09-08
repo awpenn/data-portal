@@ -96,18 +96,7 @@ class ExplorerButtonGroup extends React.Component {
       clickFunc = this.downloadManifest(buttonConfig.fileName, 'file');
     }
     if (buttonConfig.type === 'export') {
-<<<<<<< HEAD
       clickFunc = this.exportToCloud;
-=======
-      // REMOVE THIS CODE WHEN TERRA EXPORT WORKS
-      // =======================================
-      if (terraExportWarning) {
-        clickFunc = this.exportToTerraWithWarning;
-      } else {
-      // =======================================
-        clickFunc = this.exportToTerra;
-      }
->>>>>>> upstream/master
     }
     if (buttonConfig.type === 'export-to-seven-bridges') {
       clickFunc = this.exportToSevenBridges;
@@ -125,44 +114,8 @@ class ExplorerButtonGroup extends React.Component {
   };
 
   getManifest = async (indexType) => {
-<<<<<<< HEAD
-
+    
     const refField = this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex;
-=======
-    if (!this.props.guppyConfig.manifestMapping
-      || !this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex) {
-      return Promise.reject('No "guppyConfig.manifestMapping" or "guppyConfig.manifestMapping.referenceIdFieldInDataIndex" defined in config');
-    }
-    const refField = this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex;
-    const md5Field = 'md5sum';
-    const fileNameField = 'file_name';
-    const fileSizeField = 'file_size';
-    const additionalFields = [md5Field, fileNameField, fileSizeField];
-    if (indexType === 'file') {
-      let rawData;
-      try {
-        // the additionalFields are hardcoded, so it's possible they may
-        // not be available in Guppy's index. Try to download the additional fields
-        // first, and if the download fails, download only the referenceIDField.
-        rawData = await this.props.downloadRawDataByFields({
-          fields: [
-            refField,
-            ...additionalFields,
-          ],
-        });
-      } catch (err) {
-        rawData = await this.props.downloadRawDataByFields({
-          fields: [
-            refField,
-          ],
-        });
-      }
-      return rawData;
-    }
-    let refIDList = await this.props.downloadRawDataByFields({ fields: [refField] })
-      .then(res => res.map(i => i[refField]));
-    refIDList = _.uniq(refIDList);
->>>>>>> upstream/master
     const refFieldInResourceIndex =
       this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex;
     const resourceFieldInResourceIndex = this.props.guppyConfig.manifestMapping.resourceIdField;
@@ -373,31 +326,8 @@ class ExplorerButtonGroup extends React.Component {
     }
   };
 
-<<<<<<< HEAD
   exportToCloud = () => {
     this.setState({ exportingToCloud: true }, () => {
-=======
-  // REMOVE THIS CODE ONCE TERRA EXPORT WORKS
-  // =========================================
-  // The below code is a temporary feature for for https://ctds-planx.atlassian.net/browse/PXP-5186
-  // (Warn user about Terra entitiy threshold). This code should be removed when
-  // Terra is no longer limited to importing <165,000 entities. (~14k subjects).
-  // This file is the only file that contains code for this feature.
-  exportToTerraWithWarning = () => {
-    // If the number of subjects is over the threshold, warn the user that their
-    // export to Terra job might fail.
-    if (this.props.totalCount >= terraExportWarning.subjectThreshold) {
-      this.setState({ enableTerraWarningPopup: true });
-    } else {
-      // If the number is below the threshold, proceed as normal
-      this.exportToTerra();
-    }
-  }
-  // ==========================================
-
-  exportToTerra = () => {
-    this.setState({ exportingToTerra: true }, () => {
->>>>>>> upstream/master
       this.exportToPFB();
     });
   };
@@ -410,9 +340,6 @@ class ExplorerButtonGroup extends React.Component {
 
   sendPFBToTerra = () => {
     const url = encodeURIComponent(this.state.exportPFBURL);
-<<<<<<< HEAD
-    window.location = `${this.props.buttonConfig.terraExportURL}?format=PFB&url=${url}`;
-=======
     let templateParam = '';
     if (typeof this.props.buttonConfig.terraTemplate !== 'undefined'
       && this.props.buttonConfig.terraTemplate != null) {
@@ -421,7 +348,6 @@ class ExplorerButtonGroup extends React.Component {
       ).join('');
     }
     window.location = `${this.props.buttonConfig.terraExportURL}?format=PFB${templateParam}&url=${url}`;
->>>>>>> upstream/master
   }
 
   sendPFBToSevenBridges = () => {
@@ -527,9 +453,6 @@ class ExplorerButtonGroup extends React.Component {
             prevState.pendingManifestEntryCountRequestNumber - 1,
         }));
       } else {
-<<<<<<< HEAD
-        throw Error('Error when downloading data');
-=======
         // otherwise, just query subject index for subject_id list,
         // and query file index for manifest info.
         this.setState({
@@ -551,7 +474,6 @@ class ExplorerButtonGroup extends React.Component {
         } else {
           throw Error('Error when downloading data');
         }
->>>>>>> upstream/master
       }
     }
   };
@@ -669,8 +591,6 @@ class ExplorerButtonGroup extends React.Component {
     return (
       <React.Fragment>
         {
-<<<<<<< HEAD
-=======
           // REMOVE THIS CODE WHEN EXPORT TO TERRA WORKS
           // ===========================================
           this.state.enableTerraWarningPopup &&
@@ -705,7 +625,6 @@ class ExplorerButtonGroup extends React.Component {
           // ===========================================
         }
         {
->>>>>>> upstream/master
           /*
           * First, render dropdown buttons
           * Buttons are grouped under same dropdown if they have the same dropdownID

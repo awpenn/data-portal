@@ -35,25 +35,25 @@ class ExplorerVisualization extends React.Component {
       value: this.props.totalCount,
     });
     Object.keys(chartConfig).forEach((field) => {
-      if (!aggsData || !aggsData[field] || !aggsData[field].histogram) return;
-      const { histogram } = aggsData[field];
-      switch (chartConfig[field].chartType) {
+      if (!aggsData || !aggsData[`${field}`] || !aggsData[`${field}`].histogram) return;
+      const { histogram } = aggsData[`${field}`];
+      switch (chartConfig[`${field}`].chartType) {
       case 'count':
         countItems.push({
-          label: chartConfig[field].title,
-          value: filter[field] ? filter[field].selectedValues.length
-            : aggsData[field].histogram.length,
+          label: chartConfig[`${field}`].title,
+          value: filter[`${field}`] ? filter[`${field}`].selectedValues.length
+            : aggsData[`${field}`].histogram.length,
         });
         break;
       case 'pie':
       case 'bar':
       case 'stackedBar': {
         const dataItem = {
-          type: chartConfig[field].chartType,
-          title: chartConfig[field].title,
+          type: chartConfig[`${field}`].chartType,
+          title: chartConfig[`${field}`].title,
           data: histogram.map(i => ({ name: i.key, value: i.count })),
         };
-        if (chartConfig[field].chartType === 'stackedBar') {
+        if (chartConfig[`${field}`].chartType === 'stackedBar') {
           stackedBarCharts.push(dataItem);
         } else {
           summaries.push(dataItem);
@@ -61,7 +61,7 @@ class ExplorerVisualization extends React.Component {
         break;
       }
       default:
-        throw new Error(`Invalid chartType ${chartConfig[field].chartType}`);
+        throw new Error(`Invalid chartType ${chartConfig[`${field}`].chartType}`);
       }
     });
     // sort cout items according to appearence in chart config
@@ -81,7 +81,7 @@ class ExplorerVisualization extends React.Component {
     let caseIDList;
     try {
       const res = await this.props.downloadRawDataByFields({ fields: [caseField] });
-      caseIDList = res.map(e => e.node_id);
+      caseIDList = res.map(e => e[caseField]);
       this.heatMapIsLocked = false;
     } catch (e) {
       // when tiered access is enabled, we cannot get the list of IDs because
@@ -99,7 +99,8 @@ class ExplorerVisualization extends React.Component {
     const chartData = this.getData(this.props.aggsData, this.props.chartConfig, this.props.filter);
     const tableColumns = (this.props.tableConfig.fields && this.props.tableConfig.fields.length > 0)
       ? this.props.tableConfig.fields : this.props.allFields;
-    const isComponentLocked = checkForAnySelectedUnaccessibleField(this.props.aggsData,
+    // don't lock components for libre commons
+    const isComponentLocked = (tierAccessLevel !== 'regular') ? false : checkForAnySelectedUnaccessibleField(this.props.aggsData,
       this.props.accessibleFieldObject, this.props.guppyConfig.accessibleValidationField);
     const lockMessage = `The chart is hidden because you are exploring restricted access data and one or more of the values within the chart has a count below the access limit of ${this.props.tierAccessLimit} ${this.props.guppyConfig.nodeCountTitle.toLowerCase() || this.props.guppyConfig.dataType}.`;
     const barChartColor = components.categorical2Colors ? components.categorical2Colors[0] : null;
@@ -107,8 +108,10 @@ class ExplorerVisualization extends React.Component {
     // heatmap config
     const heatMapGuppyConfig = this.props.heatMapConfig ?
       this.props.heatMapConfig.guppyConfig : null;
-    const heatMapMainYAxisVar = this.props.guppyConfig.manifestMapping
-      .referenceIdFieldInResourceIndex;
+    const heatMapMainYAxisVar = (this.props.heatMapConfig
+      && this.props.guppyConfig.manifestMapping
+      && this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex)
+      ? this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex : null;
     const heatMapFilterConfig = {
       tabs: [
         {
@@ -164,7 +167,7 @@ class ExplorerVisualization extends React.Component {
             <div className='guppy-explorer-visualization__charts' >
               {
                 chartData.stackedBarCharts.map((chart, i) => (
-                  <div className='guppy-explorer-visualization__charts-row'>
+                  <div key={i} className='guppy-explorer-visualization__charts-row'>
                     {
                       i > 0 && <div className='percentage-bar-chart__row-upper-border' />
                     }
@@ -224,7 +227,10 @@ class ExplorerVisualization extends React.Component {
           this.props.tableConfig.enabled && (
             <ExplorerTable
               className='guppy-explorer-visualization__table'
-              tableConfig={{ fields: tableColumns }}
+              tableConfig={{
+                fields: tableColumns,
+                linkFields: this.props.tableConfig.linkFields || [],
+              }}
               fetchAndUpdateRawData={this.props.fetchAndUpdateRawData}
               rawData={this.props.rawData}
               totalCount={this.props.totalCount}

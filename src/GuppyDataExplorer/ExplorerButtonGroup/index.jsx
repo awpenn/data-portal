@@ -1,5 +1,6 @@
 import React from 'react';
 import FileSaver from 'file-saver';
+import _ from 'lodash';
 import Button from '@gen3/ui-component/dist/components/Button';
 import Dropdown from '@gen3/ui-component/dist/components/Dropdown';
 import Toaster from '@gen3/ui-component/dist/components/Toaster';
@@ -23,7 +24,8 @@ class ExplorerButtonGroup extends React.Component {
       toasterHeadline: '',
       toasterError: null,
       toasterErrorText: 'There was an error exporting your cohort.',
-      exportingToCloud: false,
+      exportingToTerra: false,
+      exportingToSevenBridges: false,
       // for export to PFB
       exportPFBStatus: null,
       exportPFBURL: '',
@@ -45,13 +47,21 @@ class ExplorerButtonGroup extends React.Component {
     if (nextProps.job && nextProps.job.status === 'Completed' && this.props.job.status !== 'Completed') {
       this.fetchJobResult()
         .then((res) => {
-          if (this.state.exportingToCloud) {
+          if (this.state.exportingToTerra) {
             this.setState({
               exportPFBURL: `${res.data.output}`.split('\n'),
               toasterOpen: false,
-              exportingToCloud: false,
+              exportingToTerra: false,
             }, () => {
-              this.sendPFBToCloud();
+              this.sendPFBToTerra();
+            });
+          } else if (this.state.exportingToSevenBridges) {
+            this.setState({
+              exportPFBURL: `${res.data.output}`.split('\n'),
+              toasterOpen: false,
+              exportingToSevenBridges: false,
+            }, () => {
+              this.sendPFBToSevenBridges();
             });
           } else {
             this.setState({
@@ -86,7 +96,21 @@ class ExplorerButtonGroup extends React.Component {
       clickFunc = this.downloadManifest(buttonConfig.fileName, 'file');
     }
     if (buttonConfig.type === 'export') {
+<<<<<<< HEAD
       clickFunc = this.exportToCloud;
+=======
+      // REMOVE THIS CODE WHEN TERRA EXPORT WORKS
+      // =======================================
+      if (terraExportWarning) {
+        clickFunc = this.exportToTerraWithWarning;
+      } else {
+      // =======================================
+        clickFunc = this.exportToTerra;
+      }
+>>>>>>> upstream/master
+    }
+    if (buttonConfig.type === 'export-to-seven-bridges') {
+      clickFunc = this.exportToSevenBridges;
     }
     if (buttonConfig.type === 'export-to-pfb') {
       clickFunc = this.exportToPFB;
@@ -101,8 +125,44 @@ class ExplorerButtonGroup extends React.Component {
   };
 
   getManifest = async (indexType) => {
+<<<<<<< HEAD
 
     const refField = this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex;
+=======
+    if (!this.props.guppyConfig.manifestMapping
+      || !this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex) {
+      return Promise.reject('No "guppyConfig.manifestMapping" or "guppyConfig.manifestMapping.referenceIdFieldInDataIndex" defined in config');
+    }
+    const refField = this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex;
+    const md5Field = 'md5sum';
+    const fileNameField = 'file_name';
+    const fileSizeField = 'file_size';
+    const additionalFields = [md5Field, fileNameField, fileSizeField];
+    if (indexType === 'file') {
+      let rawData;
+      try {
+        // the additionalFields are hardcoded, so it's possible they may
+        // not be available in Guppy's index. Try to download the additional fields
+        // first, and if the download fails, download only the referenceIDField.
+        rawData = await this.props.downloadRawDataByFields({
+          fields: [
+            refField,
+            ...additionalFields,
+          ],
+        });
+      } catch (err) {
+        rawData = await this.props.downloadRawDataByFields({
+          fields: [
+            refField,
+          ],
+        });
+      }
+      return rawData;
+    }
+    let refIDList = await this.props.downloadRawDataByFields({ fields: [refField] })
+      .then(res => res.map(i => i[refField]));
+    refIDList = _.uniq(refIDList);
+>>>>>>> upstream/master
     const refFieldInResourceIndex =
       this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex;
     const resourceFieldInResourceIndex = this.props.guppyConfig.manifestMapping.resourceIdField;
@@ -313,15 +373,60 @@ class ExplorerButtonGroup extends React.Component {
     }
   };
 
+<<<<<<< HEAD
   exportToCloud = () => {
     this.setState({ exportingToCloud: true }, () => {
+=======
+  // REMOVE THIS CODE ONCE TERRA EXPORT WORKS
+  // =========================================
+  // The below code is a temporary feature for for https://ctds-planx.atlassian.net/browse/PXP-5186
+  // (Warn user about Terra entitiy threshold). This code should be removed when
+  // Terra is no longer limited to importing <165,000 entities. (~14k subjects).
+  // This file is the only file that contains code for this feature.
+  exportToTerraWithWarning = () => {
+    // If the number of subjects is over the threshold, warn the user that their
+    // export to Terra job might fail.
+    if (this.props.totalCount >= terraExportWarning.subjectThreshold) {
+      this.setState({ enableTerraWarningPopup: true });
+    } else {
+      // If the number is below the threshold, proceed as normal
+      this.exportToTerra();
+    }
+  }
+  // ==========================================
+
+  exportToTerra = () => {
+    this.setState({ exportingToTerra: true }, () => {
+>>>>>>> upstream/master
       this.exportToPFB();
     });
   };
 
-  sendPFBToCloud = () => {
+  exportToSevenBridges = () => {
+    this.setState({ exportingToSevenBridges: true }, () => {
+      this.exportToPFB();
+    });
+  }
+
+  sendPFBToTerra = () => {
     const url = encodeURIComponent(this.state.exportPFBURL);
+<<<<<<< HEAD
     window.location = `${this.props.buttonConfig.terraExportURL}?format=PFB&url=${url}`;
+=======
+    let templateParam = '';
+    if (typeof this.props.buttonConfig.terraTemplate !== 'undefined'
+      && this.props.buttonConfig.terraTemplate != null) {
+      templateParam = this.props.buttonConfig.terraTemplate.map(
+        x => `&template=${x}`,
+      ).join('');
+    }
+    window.location = `${this.props.buttonConfig.terraExportURL}?format=PFB${templateParam}&url=${url}`;
+>>>>>>> upstream/master
+  }
+
+  sendPFBToSevenBridges = () => {
+    const url = encodeURIComponent(this.state.exportPFBURL);
+    window.location = `${this.props.buttonConfig.sevenBridgesExportURL}?format=PFB&url=${url}`;
   }
 
   exportToPFB = () => {
@@ -388,11 +493,14 @@ class ExplorerButtonGroup extends React.Component {
 
   isFileButton = buttonConfig => buttonConfig.type === 'manifest' ||
     buttonConfig.type === 'export' ||
+    buttonConfig.type === 'export-to-seven-bridges' ||
     buttonConfig.type === 'export-to-workspace' ||
     buttonConfig.type === 'export-to-pfb';
 
   refreshManifestEntryCount = async () => {
-    if (this.props.isLocked) return;
+    if (this.props.isLocked || !this.props.guppyConfig.manifestMapping
+      || !this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex
+      || !this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex) return;
     const caseField = this.props.guppyConfig.manifestMapping.referenceIdFieldInDataIndex;
     const caseFieldInFileIndex =
       this.props.guppyConfig.manifestMapping.referenceIdFieldInResourceIndex;
@@ -419,7 +527,31 @@ class ExplorerButtonGroup extends React.Component {
             prevState.pendingManifestEntryCountRequestNumber - 1,
         }));
       } else {
+<<<<<<< HEAD
         throw Error('Error when downloading data');
+=======
+        // otherwise, just query subject index for subject_id list,
+        // and query file index for manifest info.
+        this.setState({
+          manifestEntryCount: 0,
+        });
+        const caseIDResult = await this.props.downloadRawDataByFields({ fields: [caseField] });
+        if (caseIDResult) {
+          let caseIDList = caseIDResult.map(i => i[caseField]);
+          caseIDList = _.uniq(caseIDList);
+          const fileType = this.props.guppyConfig.manifestMapping.resourceIndexType;
+          const countResult = await this.props.getTotalCountsByTypeAndFilter(fileType, {
+            [caseFieldInFileIndex]: {
+              selectedValues: caseIDList,
+            },
+          });
+          this.setState({
+            manifestEntryCount: countResult,
+          });
+        } else {
+          throw Error('Error when downloading data');
+        }
+>>>>>>> upstream/master
       }
     }
   };
@@ -442,13 +574,30 @@ class ExplorerButtonGroup extends React.Component {
       return this.state.manifestEntryCount > 0;
     }
     if (buttonConfig.type === 'export-to-pfb') {
-      return this.state.manifestEntryCount > 0 && !this.state.exportingToCloud;
+      // disable the pfb export button if any other pfb export jobs are running
+      return !(this.state.exportingToTerra || this.state.exportingToSevenBridges);
     }
     if (buttonConfig.type === 'export') {
-      if (!this.state.exportingToCloud) {
-        return this.state.manifestEntryCount > 0 && !this.isPFBRunning();
+      if (!this.props.buttonConfig.terraExportURL) {
+        console.error('Export to Terra button is present, but there is no `terraExportURL` specified in the portal config. Disabling the export to Terra button.'); // eslint-disable-line no-console
+        return false;
       }
-      return this.state.manifestEntryCount > 0;
+      // disable the terra export button if any of the
+      // pfb export operations are running.
+      return !(this.state.exportingToTerra
+        || this.state.exportingToSevenBridges
+        || this.isPFBRunning());
+    }
+    if (buttonConfig.type === 'export-to-seven-bridges') {
+      if (!this.props.buttonConfig.sevenBridgesExportURL) {
+        console.error('Export to Terra button is present, but there is no `terraExportURL` specified in the portal config. Disabling the export to Terra button.'); // eslint-disable-line no-console
+        return false;
+      }
+      // disable the seven bridges export buttons if any of the
+      // pfb export operations are running.
+      return !(this.state.exportingToTerra
+        || this.state.exportingToSevenBridges
+        || this.isPFBRunning());
     }
     if (buttonConfig.type === 'export-to-workspace') {
       return this.state.manifestEntryCount > 0;
@@ -462,10 +611,22 @@ class ExplorerButtonGroup extends React.Component {
       return this.state.exportingToWorkspace;
     }
     if (buttonConfig.type === 'export-to-pfb') {
-      return this.isPFBRunning() && !this.state.exportingToCloud;
+      // export to pfb button is pending if a pfb export job is running and it's
+      // neither an export to terra job or an export to seven bridges job.
+      return this.isPFBRunning()
+        && !(this.state.exportingToTerra || this.state.exportingToSevenBridges);
     }
     if (buttonConfig.type === 'export') {
-      return this.state.exportingToCloud && this.isPFBRunning();
+      // export to terra button is pending if a pfb export job is running and
+      // it's an exporting to terra job.
+      return this.isPFBRunning()
+        && this.state.exportingToTerra;
+    }
+    if (buttonConfig.type === 'export-to-seven-bridges') {
+      // export to seven bridges button is pending if a pfb export job is running
+      // and it's an export to seven bridges job.
+      return this.isPFBRunning()
+        && this.state.exportingToSevenBridges;
     }
     return false;
   };
@@ -508,6 +669,43 @@ class ExplorerButtonGroup extends React.Component {
     return (
       <React.Fragment>
         {
+<<<<<<< HEAD
+=======
+          // REMOVE THIS CODE WHEN EXPORT TO TERRA WORKS
+          // ===========================================
+          this.state.enableTerraWarningPopup &&
+            (<Popup
+              message={terraExportWarning.message
+                ? terraExportWarning.message
+                : `Warning: You have selected more subjects than are currently supported. The import may not succeed. Terra recommends slicing your data into segments of no more than ${terraExportWarning.subjectThreshold.toLocaleString()} subjects and exporting each separately. Would you like to continue anyway?`
+              }
+              title={terraExportWarning.title
+                ? terraExportWarning.title
+                : 'Warning: Export May Fail'
+              }
+              rightButtons={[
+                {
+                  caption: 'Yes, Export Anyway',
+                  fn: () => {
+                    this.setState({ enableTerraWarningPopup: false });
+                    this.exportToTerra();
+                  },
+                  icon: 'external-link',
+                },
+              ]}
+              leftButtons={[
+                {
+                  caption: 'Cancel',
+                  fn: () => this.setState({ enableTerraWarningPopup: false }),
+                  icon: 'cross',
+                },
+              ]}
+              onClose={() => this.setState({ enableTerraWarningPopup: false })}
+            />)
+          // ===========================================
+        }
+        {
+>>>>>>> upstream/master
           /*
           * First, render dropdown buttons
           * Buttons are grouped under same dropdown if they have the same dropdownID

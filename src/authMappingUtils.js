@@ -13,6 +13,27 @@ const resourcePathFromProjectID = (projectID) => {
 };
 
 
+// Used by ProjectSubmission to determine whether the user is creating a program.
+// To create a program the user needs access to the resource
+// /services/sheepdog/submission/program, usually granted via Sheepdog admin policy.
+export const isRootUrl = urlFragment => urlFragment === '_root';
+
+
+// Used by ProjectSubmission to determine whether the user is creating a project.
+// To create a project the user needs access to the resource
+// /services/sheepdog/submission/project, usually granted via Sheepdog admin policy.
+// A dash delimits the project code if there is one
+export const isProgramUrl = urlFragment => urlFragment !== '_root' && !urlFragment.includes('-');
+
+
+export const userHasSheepdogProgramAdmin = (userAuthMapping = {}) =>
+  userAuthMapping['/services/sheepdog/submission/program'] !== undefined;
+
+
+export const userHasSheepdogProjectAdmin = (userAuthMapping = {}) =>
+  userAuthMapping['/services/sheepdog/submission/project'] !== undefined;
+
+
 export const projectCodeFromResourcePath = (resourcePath) => {
   // If resourcePath is anything other than /programs/foo/projects/bar[/morestuff],
   // e.g. /gen3/programs/foo/projects/bar or /workspace or /programs/foo/bar/projects/baz,
@@ -32,8 +53,8 @@ export const listifyMethodsFromMapping = (actions) => {
 
 
 export const userHasDataUpload = (userAuthMapping = {}) => {
-  // data_upload policy is resource data_file, method file_upload, service fence
-  const actionIsFileUpload = x => x.method === 'file_upload' && x.service === 'fence';
+  // data_upload policy is resource data_file, method file_upload
+  const actionIsFileUpload = x => x.method === 'file_upload';
   const resource = userAuthMapping['/data_file'];
   return resource !== undefined && resource.some(actionIsFileUpload);
 };

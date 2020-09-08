@@ -8,7 +8,7 @@ import './Popup.less';
 const Popup = ({
   title, message, lines, error,
   iconName, leftButtons, rightButtons,
-  onClose,
+  onClose, children,
 }) => (
   <div className='popup__mask'>
     <div className='popup__box'>
@@ -52,6 +52,7 @@ const Popup = ({
             }
           </pre>
         }
+        { children }
         { error && <h6 className='popup__error'>Error</h6> }
         { error && <code>{error}</code> }
       </div>
@@ -66,6 +67,7 @@ const Popup = ({
                 label={btn.caption}
                 enabled={(btn.enabled !== undefined) ? btn.enabled : true}
                 buttonType='default'
+                value={btn.value}
               /> :
                 <Button
                   key={btn.caption}
@@ -74,6 +76,7 @@ const Popup = ({
                   enabled={(btn.enabled !== undefined) ? btn.enabled : true}
                   buttonType='default'
                   rightIcon={btn.icon}
+                  value={btn.value}
                 />,
             ])
           }
@@ -88,6 +91,7 @@ const Popup = ({
                 label={btn.caption}
                 enabled={(btn.enabled !== undefined) ? btn.enabled : true}
                 buttonType='primary'
+                value={btn.value}
               /> :
                 <Button
                   key={btn.caption}
@@ -96,6 +100,7 @@ const Popup = ({
                   enabled={(btn.enabled !== undefined) ? btn.enabled : true}
                   buttonType='primary'
                   rightIcon={btn.icon}
+                  value={btn.value}
                 />,
             ])
           }
@@ -123,6 +128,7 @@ Popup.propTypes = {
   rightButtons: PropTypes.arrayOf(buttonType),
   title: PropTypes.string,
   onClose: PropTypes.func,
+  children: PropTypes.node,
 };
 
 Popup.defaultProps = {
@@ -134,6 +140,7 @@ Popup.defaultProps = {
   rightButtons: [],
   title: '',
   onClose: null,
+  children: null,
 };
 
 export default Popup;

@@ -86,11 +86,12 @@ class ExplorerButtonGroup extends React.Component {
   getOnClickFunction = (buttonConfig) => {
     let clickFunc = () => {};
     if (buttonConfig.type === 'data') {
-      clickFunc = this.downloadData(buttonConfig.fileName);
+      clickFunc = this.downloadData(buttonConfig.fileName, 'data');
     }
     if (buttonConfig.type === 'manifest') {
       clickFunc = this.downloadManifest(buttonConfig.fileName, null);
     }
+    // 10/14/21 dont think below is still true
     // AW -- below if statement changed to call downloadData instead of downloadManifest(buttonConfig.fileName, 'file')
     // so that the function pulling data takes all fields based on the file tab table rather than hard coded arguments
     if (buttonConfig.type === 'file-manifest') {
@@ -215,8 +216,14 @@ class ExplorerButtonGroup extends React.Component {
     });
   };
 
-  downloadData = filename => () => {
-    this.props.downloadRawData().then((res) => {
+  downloadData = (filename, fileFormat) => () => {
+    const fileTypeKey = fileFormat.toLowerCase();
+    const isJsonFormat = fileTypeKey === 'json' || fileTypeKey === 'data';
+    const queryArgObj = {};
+    if (fileTypeKey !== 'data') {
+      queryArgObj.format = fileTypeKey;
+    }
+    this.props.downloadRawData(queryArgObj).then((res) => {
       if (res) {
 
         if ( filename.includes('.csv') ){

@@ -53,8 +53,9 @@ import ReduxQueryNode, { submitSearchForm } from './QueryNode/ReduxQueryNode';
 import {
   basename, dev, gaDebug, workspaceUrl, workspaceErrorUrl,
   indexPublic, explorerPublic, enableResourceBrowser, resourceBrowserPublic, enableDAPTracker,
-  ddApplicationId, ddClientToken, ddEnv, ddSampleRate,
+  discoveryConfig, ddApplicationId, ddClientToken, ddEnv, ddSampleRate,
 } from './localconf';
+import { portalVersion } from './versions';
 import Analysis from './Analysis/Analysis';
 import ReduxAnalysisApp from './Analysis/ReduxAnalysisApp';
 import { gaTracking, components } from './params';
@@ -63,8 +64,12 @@ import { DAPRouteTracker } from './components/DAPAnalytics';
 import GuppyDataExplorer from './GuppyDataExplorer';
 import isEnabled from './helpers/featureFlags';
 import sessionMonitor from './SessionMonitor';
+import workspaceSessionMonitor from './Workspace/WorkspaceSessionMonitor';
 import Workspace from './Workspace';
 import ResourceBrowser from './ResourceBrowser';
+import Discovery from './Discovery';
+import ReduxWorkspaceShutdownPopup from './Popup/ReduxWorkspaceShutdownPopup';
+import ReduxWorkspaceShutdownBanner from './Popup/ReduxWorkspaceShutdownBanner';
 import ErrorWorkspacePlaceholder from './Workspace/ErrorWorkspacePlaceholder';
 import './nctIndex.css';
 import { ReduxStudyViewer, ReduxSingleStudyViewer } from './StudyViewer/reduxer';
@@ -73,12 +78,12 @@ import FooterNIAID from './components/layout/FooterNIAID';
 
 // monitor user's session
 sessionMonitor.start();
+workspaceSessionMonitor.start();
 
 // render the app after the store is configured
 async function init() {
   const store = await getReduxStore();
 
-  // asyncSetInterval(() => store.dispatch(fetchUser), 60000);
   ReactGA.initialize(gaTracking);
   ReactGA.pageview(window.location.pathname + window.location.search);
 
@@ -94,8 +99,7 @@ async function init() {
       site: 'datadoghq.com',
       service: 'portal',
       env: ddEnv,
-      // Specify a version number to identify the deployed version of your application in Datadog
-      // version: '1.0.0',
+      version: portalVersion,
       sampleRate: ddSampleRate,
       trackInteractions: true,
     });
@@ -144,6 +148,8 @@ async function init() {
               <ReduxTopBar />
               <ReduxNavBar />
               <div className='main-content'>
+                <ReduxWorkspaceShutdownBanner />
+                <ReduxWorkspaceShutdownPopup />
                 <Switch>
                   {/* process with trailing and duplicate slashes first */}
                   {/* see https://github.com/ReactTraining/react-router/issues/4841#issuecomment-523625186 */}
@@ -459,6 +465,37 @@ async function init() {
                       )
                     }
                   />
+                  {isEnabled('discovery')
+                    && (
+                      <Route
+                        exact
+                        path='/discovery'
+                        component={
+                          (props) => (
+                            <ProtectedContent
+                              public={discoveryConfig.public !== false}
+                              component={Discovery}
+                              {...props}
+                            />
+                          )
+                        }
+                      />
+                    )}
+                  {isEnabled('discovery') && (
+                    <Route
+                      exact
+                      path='/discovery/:studyUID'
+                      component={
+                        (props) => (
+                          <ProtectedContent
+                            public
+                            component={Discovery}
+                            {...props}
+                          />
+                        )
+                      }
+                    />
+                  )}
                   <Route
                     path='/not-found'
                     component={NotFound}
